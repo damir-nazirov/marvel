@@ -7,9 +7,24 @@ import './comicsList.scss';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 
+const setContent = (process, Component, newItemLoading) => {
+    switch (process) {
+        case 'waiting':
+            return <Spinner/>
+        case 'loading':
+            return newItemLoading ? <Component/> : <Spinner/>
+        case 'confirmed':
+            return <Component/>
+        case 'error':
+            return <ErrorMessage/>
+        default:
+            throw new Error('Unexpected process state')
+    }
+}
+
 const ComicsList = () => {
 
-    const {loading, error, clearError, getAllComicses} = useMarvelService()   
+    const {clearError, getAllComicses, process, setProcess} = useMarvelService()   
     const [comicsList, setComicsList] = useState([])
     const [newItemLoading, setNewItemLoading] = useState(false)
     const [offset, setOffset] = useState(200)
@@ -18,6 +33,7 @@ const ComicsList = () => {
 
    useEffect(() => {
         onRequest(offset, true);
+        // eslint-disable-next-line
    }, [])
 
    const onRequest = (offset, initial) => {
@@ -25,6 +41,7 @@ const ComicsList = () => {
         initial? setNewItemLoading(false) : setNewItemLoading(true)
         getAllComicses(offset)
             .then(onComicsListLoaded)
+            .then(() => setProcess('confirmed'))
     }
 
 
@@ -74,17 +91,9 @@ const ComicsList = () => {
    
 
        
-        const items = renderItems(comicsList);
-
-        const errorMessage = error ? <ErrorMessage/> : null;
-        const spinner = loading && !newItemLoading ? <Spinner/> : null;
-        // const content = !(loading || error) ? items : null;
-
         return (
             <div className="comics__list">
-                {errorMessage}
-                {spinner}
-                {items}
+                {setContent(process, () => renderItems(comicsList), newItemLoading)}
                 <button 
                     className="button button__main button__long"
                     disabled={newItemLoading}
